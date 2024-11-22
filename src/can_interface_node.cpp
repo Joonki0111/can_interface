@@ -91,7 +91,7 @@ void AwToCan::TCbrake_callback(const std_msgs::msg::Float64::SharedPtr msg)
 
 void AwToCan::TimerCallback()
 {
-    uint8_t steer_can = static_cast<uint8_t>(std::clamp((steer_command_* STEERCMD2SIG) + STEERCMD_OFFSET, 0.0, 255.0));
+    uint8_t steer_can = static_cast<uint8_t>(std::clamp((-steer_command_* STEERCMD2SIG) + STEERCMD_OFFSET, 0.0, 255.0));
     uint8_t throttle_can = static_cast<uint8_t>(std::clamp(TC_thro_output_cmd * SPEEDCMD2SIG, 0.0, 255.0));
     uint8_t brake_can = static_cast<uint8_t>(std::clamp(TC_brake_output_cmd * SPEEDCMD2SIG, 0.0, 255.0));
 
