@@ -6,10 +6,12 @@ std::chrono::steady_clock::time_point time_previous_;
 AwToCan::AwToCan() : Node("Aw_to")
 {
     // pub
-    pub_velocity_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", rclcpp::QoS(1));
-    pub_steer_angle_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>("/vehicle/status/steering_status", rclcpp::QoS(1));    
+    AW_pub_velocity_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", rclcpp::QoS(1));
+    AW_pub_steer_angle_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>("/vehicle/status/steering_status", rclcpp::QoS(1));    
     TC_velocity_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/velocity_cmd", rclcpp::QoS(1));
     TC_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/velocity_status", rclcpp::QoS(1));
+    TC_steer_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/steer_cmd", rclcpp::QoS(1));
+    TC_steer_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/steer_status", rclcpp::QoS(1));
 
     // sub  
     sub_aw_command_ = this->create_subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>(
@@ -18,6 +20,8 @@ AwToCan::AwToCan() : Node("Aw_to")
         "/twist_controller/output/throttle_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCthro_callback, this, std::placeholders::_1));
     TC_brake_cmd = this->create_subscription<std_msgs::msg::Float64>(
         "/twist_controller/output/brake_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCbrake_callback, this, std::placeholders::_1));
+    TC_steer_cmd = this->create_subscription<std_msgs::msg::Float32>(
+        "/twist_controller/output/steer_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCsteer_callback, this, std::placeholders::_1));
 
     // Can bridge
     sub_can_ = this->create_subscription<can_msgs::msg::Frame>(
@@ -27,30 +31,32 @@ AwToCan::AwToCan() : Node("Aw_to")
 
     // timer
     timer_ = this->create_wall_timer(10ms, std::bind(&AwToCan::TimerCallback, this));
+
+    static_assert(sizeof(float) == 4);
 }
 
 void AwToCan::can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
 {
     if(msg->id == 513) // 201
     {
-        speed_data_= msg->data[5] << 8 | msg->data[4];
+        float speed_data = msg->data[5] << 8 | msg->data[4];
         
-        speed_data_ *= 0.01;
+        speed_data *= 0.01;
 
-        velocity_msg_.header.stamp = this->now();
-        velocity_msg_.header.frame_id = "base_link";
-        velocity_msg_.longitudinal_velocity = speed_data_;
-        pub_velocity_->publish(velocity_msg_);
+        autoware_auto_vehicle_msgs::msg::VelocityReport AW_velocity_status_msg;
+        AW_velocity_status_msg.header.stamp = this->now();
+        AW_velocity_status_msg.header.frame_id = "base_link";
+        AW_velocity_status_msg.longitudinal_velocity = speed_data;
+        AW_pub_velocity_->publish(AW_velocity_status_msg);
 
         std_msgs::msg::Float64 TC_velocity_msg;
-        TC_velocity_msg.data = speed_data_;
+        TC_velocity_msg.data = speed_data;
         TC_velocity_status_pub_->publish(TC_velocity_msg);
     }
 
     if(msg->id == 273) // 111
     {
-        double calc_val;
-        calc_val = msg->data[0] + (msg->data[1] << 8); 
+        double calc_val = msg->data[0] + (msg->data[1] << 8); 
                 
         if(calc_val > 65535)
         {
@@ -60,49 +66,68 @@ void AwToCan::can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
         calc_val -= 5200.f;
         calc_val *= 0.01071f;
         calc_val /= RAD2DEG;
+        
+        autoware_auto_vehicle_msgs::msg::SteeringReport steering_msg;
+        steering_msg.stamp = this->now();
+        steering_msg.steering_tire_angle = calc_val;
+        AW_pub_steer_angle_->publish(steering_msg);
 
-        steering_msg_.stamp = this->now();
-        steering_msg_.steering_tire_angle = calc_val;
-        pub_steer_angle_->publish(steering_msg_);
+        std_msgs::msg::Float64 steering_status_msg;
+        steering_status_msg.data = calc_val;
+        TC_steer_status_pub_->publish(steering_status_msg);
     }    
 }
 
 void AwToCan::AwCmd_callback(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg)
 {
-    velocity_command_ = msg->longitudinal.speed;
-    velocity_command_msg_.data = velocity_command_;
-    
-    steer_command_ = msg->lateral.steering_tire_angle;
-    
-    TC_velocity_cmd_pub_->publish(velocity_command_msg_);
-    
+    std_msgs::msg::Float64 TC_velocity_cmd_msg;
+    std_msgs::msg::Float64 TC_steer_cmd_msg;
+
+    TC_velocity_cmd_msg.data = msg->longitudinal.speed;
+    TC_steer_cmd_msg.data = msg->lateral.steering_tire_angle;
+
+    TC_velocity_cmd_pub_->publish(TC_velocity_cmd_msg);
+    TC_steer_cmd_pub_->publish(TC_steer_cmd_msg);
 }
 
 void AwToCan::TCthro_callback(const std_msgs::msg::Float64::SharedPtr msg)
 {
-    TC_thro_output_cmd = msg->data;
+    TC_thro_output_cmd_ = msg->data;
 }
 
 void AwToCan::TCbrake_callback(const std_msgs::msg::Float64::SharedPtr msg)
 {   
-    TC_brake_output_cmd = msg->data;
+    TC_brake_output_cmd_ = msg->data;
+}
+void AwToCan::TCsteer_callback(const std_msgs::msg::Float32::SharedPtr msg)
+{   
+    TC_steer_output_cmd_ = msg->data;
 }
 
 
 void AwToCan::TimerCallback()
 {
-    uint8_t steer_can = static_cast<uint8_t>(std::clamp((-steer_command_* STEERCMD2SIG) + STEERCMD_OFFSET, 0.0, 255.0));
-    uint8_t throttle_can = static_cast<uint8_t>(std::clamp(TC_thro_output_cmd * SPEEDCMD2SIG, 0.0, 255.0));
-    uint8_t brake_can = static_cast<uint8_t>(std::clamp(TC_brake_output_cmd * SPEEDCMD2SIG, 0.0, 255.0));
+    uint8_t throttle_can = static_cast<uint8_t>(std::clamp(TC_thro_output_cmd_ * SPEEDCMD2SIG, 0.0, 255.0));
+    uint8_t brake_can = static_cast<uint8_t>(std::clamp(TC_brake_output_cmd_ * SPEEDCMD2SIG, 0.0, 255.0));
 
     can_msgs::msg::Frame can_data;
     can_data.id = 320;
     can_data.dlc = 4;
     can_data.data[0] = throttle_can;
-    can_data.data[1] = steer_can;
+    can_data.data[1] = 0;
     can_data.data[2] = brake_can;
     can_data.data[3] = 1;
     
+    pub_can_->publish(can_data);
+
+    uint8_t bytes[4];
+    std::memcpy(bytes, &TC_steer_output_cmd_, sizeof(float));
+    can_data.id = 666;
+    can_data.dlc = 4;
+    can_data.data[0] = bytes[0];
+    can_data.data[1] = bytes[1];
+    can_data.data[2] = bytes[2];
+    can_data.data[3] = bytes[3];
     pub_can_->publish(can_data);
 }
 
