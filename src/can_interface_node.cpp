@@ -1,7 +1,6 @@
 #include "can_interface.hpp"
 
 using namespace std::chrono_literals;
-std::chrono::steady_clock::time_point time_previous_;
 
 AwToCan::AwToCan() : Node("Aw_to")
 {
