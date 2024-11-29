@@ -2,7 +2,7 @@
 
 using namespace std::chrono_literals;
 
-AwToCan::AwToCan() : Node("Aw_to")
+AwToCan::AwToCan() : Node("Aw_to_CAN")
 {
     // pub
     AW_pub_velocity_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", rclcpp::QoS(1));
