@@ -20,7 +20,7 @@ AwToCan::AwToCan() : Node("Aw_to")
         "/twist_controller/output/throttle_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCthro_callback, this, std::placeholders::_1));
     TC_brake_cmd = this->create_subscription<std_msgs::msg::Float64>(
         "/twist_controller/output/brake_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCbrake_callback, this, std::placeholders::_1));
-    TC_steer_cmd = this->create_subscription<std_msgs::msg::Float32>(
+    TC_steer_cmd = this->create_subscription<std_msgs::msg::Int16>(
         "/twist_controller/output/steer_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCsteer_callback, this, std::placeholders::_1));
 
     // Can bridge
@@ -31,8 +31,6 @@ AwToCan::AwToCan() : Node("Aw_to")
 
     // timer
     timer_ = this->create_wall_timer(10ms, std::bind(&AwToCan::TimerCallback, this));
-
-    static_assert(sizeof(float) == 4);
 }
 
 void AwToCan::can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
@@ -99,11 +97,11 @@ void AwToCan::TCbrake_callback(const std_msgs::msg::Float64::SharedPtr msg)
 {   
     TC_brake_output_cmd_ = msg->data;
 }
-void AwToCan::TCsteer_callback(const std_msgs::msg::Float32::SharedPtr msg)
+
+void AwToCan::TCsteer_callback(const std_msgs::msg::Int16::SharedPtr msg)
 {   
     TC_steer_output_cmd_ = msg->data;
 }
-
 
 void AwToCan::TimerCallback()
 {
@@ -120,17 +118,19 @@ void AwToCan::TimerCallback()
     
     pub_can_->publish(can_data);
 
-    uint8_t bytes[4];
-    std::memcpy(bytes, &TC_steer_output_cmd_, sizeof(float));
-    can_data.id = 666;
-    can_data.dlc = 4;
-    can_data.data[0] = bytes[0];
-    can_data.data[1] = bytes[1];
-    can_data.data[2] = bytes[2];
-    can_data.data[3] = bytes[3];
-    pub_can_->publish(can_data);
-}
+    can_msgs::msg::Frame can_data1;
 
+    RCLCPP_INFO(rclcpp::get_logger("test"), "%d", TC_steer_output_cmd_);
+    const int8_t TC_steer_output_cmd_1 = (int8_t)((TC_steer_output_cmd_ & 0xFF00) >> 8);
+    const int8_t TC_steer_output_cmd_2 = (int8_t)(TC_steer_output_cmd_ & 0x00FF);
+
+    int8_t bytes[2];
+    can_data1.id = 666;
+    can_data1.dlc = 2;
+    can_data1.data[0] = TC_steer_output_cmd_1;
+    can_data1.data[1] = TC_steer_output_cmd_2;
+    pub_can_->publish(can_data1);
+}
 
 int main(int argc, char *argv[])
 {
