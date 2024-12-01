@@ -7,10 +7,10 @@ AwToCan::AwToCan() : Node("Aw_to_CAN")
     // pub
     AW_pub_velocity_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", rclcpp::QoS(1));
     AW_pub_steer_angle_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>("/vehicle/status/steering_status", rclcpp::QoS(1));    
-    TC_velocity_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/velocity_cmd", rclcpp::QoS(1));
-    TC_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/velocity_status", rclcpp::QoS(1));
-    TC_steer_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/steer_cmd", rclcpp::QoS(1));
-    TC_steer_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/steer_status", rclcpp::QoS(1));
+    TC_velocity_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_cmd", rclcpp::QoS(1));
+    TC_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_status", rclcpp::QoS(1));
+    TC_steer_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_cmd", rclcpp::QoS(1));
+    TC_steer_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_status", rclcpp::QoS(1));
 
     // sub  
     sub_aw_command_ = this->create_subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>(
