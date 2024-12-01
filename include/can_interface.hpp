@@ -55,7 +55,8 @@ class AwToCan : public rclcpp::Node
         float TC_thro_output_cmd_ = 0.0;
         float TC_brake_output_cmd_ = 0.0;
         int16_t TC_steer_output_cmd_ = 0;
-
+        bool use_motor_revolution_ = false;
+        
         void Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg);
         void Motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg);
         void AwCmd_callback(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg);
