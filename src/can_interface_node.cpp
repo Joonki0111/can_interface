@@ -119,7 +119,6 @@ void AwToCan::TimerCallback()
 
     can_msgs::msg::Frame can_data1;
 
-    RCLCPP_INFO(rclcpp::get_logger("test"), "%d", TC_steer_output_cmd_);
     const int8_t TC_steer_output_cmd_1 = (int8_t)((TC_steer_output_cmd_ & 0xFF00) >> 8);
     const int8_t TC_steer_output_cmd_2 = (int8_t)(TC_steer_output_cmd_ & 0x00FF);
 
