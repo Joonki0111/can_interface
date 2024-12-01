@@ -149,7 +149,6 @@ void AwToCan::TimerCallback()
     const int8_t TC_steer_output_cmd_1 = (int8_t)((TC_steer_output_cmd_ & 0xFF00) >> 8);
     const int8_t TC_steer_output_cmd_2 = (int8_t)(TC_steer_output_cmd_ & 0x00FF);
 
-    int8_t bytes[2];
     can_data1.id = 666;
     can_data1.dlc = 2;
     can_data1.data[0] = TC_steer_output_cmd_1;
