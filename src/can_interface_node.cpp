@@ -9,6 +9,7 @@ AwToCan::AwToCan() : Node("Aw_to_CAN")
     AW_pub_steer_angle_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>("/vehicle/status/steering_status", rclcpp::QoS(1));    
     TC_velocity_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_cmd", rclcpp::QoS(1));
     TC_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_status", rclcpp::QoS(1));
+    TC_motor_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/motor/velocity_status", rclcpp::QoS(1));
     TC_steer_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_cmd", rclcpp::QoS(1));
     TC_steer_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_status", rclcpp::QoS(1));
 
@@ -23,16 +24,18 @@ AwToCan::AwToCan() : Node("Aw_to_CAN")
         "/twist_controller/output/steer_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCsteer_callback, this, std::placeholders::_1));
 
     // Can bridge
-    sub_can_ = this->create_subscription<can_msgs::msg::Frame>(
-        "/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::can_data_callback, this, std::placeholders::_1));
-    pub_can_ = this->create_publisher<can_msgs::msg::Frame>(
-        "/to_can_bus", rclcpp::QoS(1));
+    Interface_sub_can_ = this->create_subscription<can_msgs::msg::Frame>(
+        "/socketcan/interface/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::Interface_can_data_callback, this, std::placeholders::_1));
+    Interface_pub_can_ = this->create_publisher<can_msgs::msg::Frame>(
+        "/socketcan/interface/to_can_bus", rclcpp::QoS(1));
+    Motor_sub_can_= this->create_subscription<can_msgs::msg::Frame>(
+        "/socketcan/motor/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::Motor_can_data_callback, this, std::placeholders::_1));
 
     // timer
     timer_ = this->create_wall_timer(10ms, std::bind(&AwToCan::TimerCallback, this));
 }
 
-void AwToCan::can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
+void AwToCan::Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
 {
     if(msg->id == 513) // 201
     {
@@ -75,6 +78,22 @@ void AwToCan::can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
     }    
 }
 
+void AwToCan::Motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
+{
+    if(msg->id == 402724847) //  Motor_control id 180117EF
+    {
+        double motor_rpm_raw = msg->data[7] << 8 | msg->data[6];
+        double motor_rpm = motor_rpm_raw - 32000;
+        
+        double vehicle_speed_data = motor_rpm * MY_PI * WHEEL_DIAMETER / GEAR_RATIO;
+        vehicle_speed_data /= 60; //m/s
+
+        std_msgs::msg::Float64 TC_motor_velocity_msg;
+        TC_motor_velocity_msg.data = vehicle_speed_data;
+        TC_motor_velocity_status_pub_->publish(TC_motor_velocity_msg);
+    }
+}
+
 void AwToCan::AwCmd_callback(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg)
 {
     std_msgs::msg::Float64 TC_velocity_cmd_msg;
@@ -115,7 +134,7 @@ void AwToCan::TimerCallback()
     can_data.data[2] = brake_can;
     can_data.data[3] = 1;
     
-    pub_can_->publish(can_data);
+    Interface_pub_can_->publish(can_data);
 
     can_msgs::msg::Frame can_data1;
 
@@ -127,7 +146,7 @@ void AwToCan::TimerCallback()
     can_data1.dlc = 2;
     can_data1.data[0] = TC_steer_output_cmd_1;
     can_data1.data[1] = TC_steer_output_cmd_2;
-    pub_can_->publish(can_data1);
+    Interface_pub_can_->publish(can_data1);
 }
 
 int main(int argc, char *argv[])
