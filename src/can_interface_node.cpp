@@ -53,24 +53,24 @@ void AwToCan::can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
 
     if(msg->id == 273) // 111
     {
-        double calc_val = msg->data[0] + (msg->data[1] << 8); 
-                
-        if(calc_val > 65535)
+        float steer_data = msg->data[0] + (msg->data[1] << 8); 
+
+        if(steer_data > 65535)
         {
-            calc_val -= 65535;
+            steer_data -= 65535;
         }
         
-        calc_val -= 5200.f;
-        calc_val *= 0.01071f;
-        calc_val /= RAD2DEG;
+        steer_data -= 5200.f;
+        steer_data *= 0.01071f;
+        steer_data /= RAD2DEG;
         
         autoware_auto_vehicle_msgs::msg::SteeringReport steering_msg;
         steering_msg.stamp = this->now();
-        steering_msg.steering_tire_angle = calc_val;
+        steering_msg.steering_tire_angle = steer_data;
         AW_pub_steer_angle_->publish(steering_msg);
 
         std_msgs::msg::Float64 steering_status_msg;
-        steering_status_msg.data = calc_val;
+        steering_status_msg.data = steer_data;
         TC_steer_status_pub_->publish(steering_status_msg);
     }    
 }
