@@ -4,12 +4,14 @@ using namespace std::chrono_literals;
 
 AwToCan::AwToCan() : Node("Aw_to_CAN")
 {
+    use_motor_revolution_ = this->declare_parameter("use_motor_revolution", false);
+    
     // pub
     AW_pub_velocity_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>("/vehicle/status/velocity_status", rclcpp::QoS(1));
     AW_pub_steer_angle_ = this->create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>("/vehicle/status/steering_status", rclcpp::QoS(1));    
     TC_velocity_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_cmd", rclcpp::QoS(1));
     TC_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_status", rclcpp::QoS(1));
-    TC_motor_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/motor/velocity_status", rclcpp::QoS(1));
+    TC_motor_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_status", rclcpp::QoS(1));
     TC_steer_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_cmd", rclcpp::QoS(1));
     TC_steer_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_status", rclcpp::QoS(1));
 
@@ -51,7 +53,10 @@ void AwToCan::Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr 
 
         std_msgs::msg::Float64 TC_velocity_msg;
         TC_velocity_msg.data = speed_data;
-        TC_velocity_status_pub_->publish(TC_velocity_msg);
+        if(!use_motor_revolution_)
+        {
+            TC_velocity_status_pub_->publish(TC_velocity_msg);
+        }
     }
 
     if(msg->id == 273) // 111
@@ -90,7 +95,10 @@ void AwToCan::Motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
 
         std_msgs::msg::Float64 TC_motor_velocity_msg;
         TC_motor_velocity_msg.data = vehicle_speed_data;
-        TC_motor_velocity_status_pub_->publish(TC_motor_velocity_msg);
+        if(use_motor_revolution_)
+        {
+            TC_motor_velocity_status_pub_->publish(TC_motor_velocity_msg);
+        }
     }
 }
 
@@ -141,7 +149,6 @@ void AwToCan::TimerCallback()
     const int8_t TC_steer_output_cmd_1 = (int8_t)((TC_steer_output_cmd_ & 0xFF00) >> 8);
     const int8_t TC_steer_output_cmd_2 = (int8_t)(TC_steer_output_cmd_ & 0x00FF);
 
-    int8_t bytes[2];
     can_data1.id = 666;
     can_data1.dlc = 2;
     can_data1.data[0] = TC_steer_output_cmd_1;
