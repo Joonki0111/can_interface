@@ -44,7 +44,7 @@ class AwToCan : public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_motor_velocity_status_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_steer_cmd_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_steer_status_pub_;
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vehicle_status_pub_;
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr Vehicle_status_pub_;
 
         // Sub
         rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr sub_aw_command_;

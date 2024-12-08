@@ -86,20 +86,20 @@ void AwToCan::Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr 
     if (msg->id == 321) // 141 vehicle_mode (8bit)
     {
         uint8_t Vehicle_status = msg->data[4];
-        bool vehicle_mode = 0;
+        bool Vehicle_mode = 0;
 
         if (Vehicle_status == MANULAL)
         {
-            vehicle_mode = false;
+            Vehicle_mode = false;
         }
         else if (Vehicle_status == AUTONOMOUS)
         {
-            vehicle_mode = true;
+            Vehicle_mode = true;
         }
 
         std_msgs::msg::Bool Vehicle_status_msg;
-        Vehicle_status_msg.data = vehicle_mode;
-        vehicle_status_pub_->publish(Vehicle_status_msg);
+        Vehicle_status_msg.data = Vehicle_mode;
+        Vehicle_status_pub_->publish(Vehicle_status_msg);
     }
 
 }
