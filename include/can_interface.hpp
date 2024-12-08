@@ -44,7 +44,7 @@ class AwToCan : public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_motor_velocity_status_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_steer_cmd_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_steer_status_pub_;
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr Vehicle_status_pub_;
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vehicle_status_pub_;
 
         // Sub
         rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr sub_aw_command_;
@@ -53,9 +53,9 @@ class AwToCan : public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr TC_steer_cmd;
 
         // CAN
-        rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr Interface_sub_can_;
-        rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr Motor_sub_can_;
-        rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr Interface_pub_can_;
+        rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr interface_sub_can_;
+        rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr motor_sub_can_;
+        rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr interface_pub_can_;
 
         // Timer
         rclcpp::TimerBase::SharedPtr timer_;            
@@ -65,8 +65,8 @@ class AwToCan : public rclcpp::Node
         int16_t TC_steer_output_cmd_ = 0;
         bool use_motor_revolution_ = false;
         
-        void Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg);
-        void Motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg);
+        void interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg);
+        void motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg);
         void AwCmd_callback(const autoware_auto_control_msgs::msg::AckermannControlCommand::SharedPtr msg);
         void TCthro_callback(const std_msgs::msg::Float64::SharedPtr msg);
         void TCbrake_callback(const std_msgs::msg::Float64::SharedPtr msg);

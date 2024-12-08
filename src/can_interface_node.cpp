@@ -27,18 +27,18 @@ AwToCan::AwToCan() : Node("Aw_to_CAN")
         "/twist_controller/output/steer_cmd", rclcpp::QoS(1), std::bind(&AwToCan::TCsteer_callback, this, std::placeholders::_1));
 
     // Can bridge
-    Interface_sub_can_ = this->create_subscription<can_msgs::msg::Frame>(
-        "/socketcan/interface/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::Interface_can_data_callback, this, std::placeholders::_1));
-    Interface_pub_can_ = this->create_publisher<can_msgs::msg::Frame>(
+    interface_sub_can_ = this->create_subscription<can_msgs::msg::Frame>(
+        "/socketcan/interface/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::interface_can_data_callback, this, std::placeholders::_1));
+    interface_pub_can_ = this->create_publisher<can_msgs::msg::Frame>(
         "/socketcan/interface/to_can_bus", rclcpp::QoS(1));
-    Motor_sub_can_= this->create_subscription<can_msgs::msg::Frame>(
-        "/socketcan/motor/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::Motor_can_data_callback, this, std::placeholders::_1));
+    motor_sub_can_= this->create_subscription<can_msgs::msg::Frame>(
+        "/socketcan/motor/from_can_bus", rclcpp::QoS(1), std::bind(&AwToCan::motor_can_data_callback, this, std::placeholders::_1));
 
     // timer
     timer_ = this->create_wall_timer(10ms, std::bind(&AwToCan::TimerCallback, this));
 }
 
-void AwToCan::Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
+void AwToCan::interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
 {
     if(msg->id == 513) // 201
     {
@@ -85,26 +85,26 @@ void AwToCan::Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr 
 
     if (msg->id == 321) // 141 vehicle_mode (8bit)
     {
-        uint8_t Vehicle_status = msg->data[4];
-        bool Vehicle_mode = 0;
+        uint8_t vehicle_status = msg->data[4];
+        bool vehicle_mode = 0;
 
-        if (Vehicle_status == MANULAL)
+        if (vehicle_status == MANULAL)
         {
-            Vehicle_mode = false;
+            vehicle_mode = false;
         }
-        else if (Vehicle_status == AUTONOMOUS)
+        else if (vehicle_status == AUTONOMOUS)
         {
-            Vehicle_mode = true;
+            vehicle_mode = true;
         }
 
-        std_msgs::msg::Bool Vehicle_status_msg;
-        Vehicle_status_msg.data = Vehicle_mode;
-        Vehicle_status_pub_->publish(Vehicle_status_msg);
+        std_msgs::msg::Bool vehicle_status_msg;
+        vehicle_status_msg.data = vehicle_mode;
+        vehicle_status_pub_->publish(vehicle_status_msg);
     }
 
 }
 
-void AwToCan::Motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
+void AwToCan::motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)
 {
     if(msg->id == 402724847) //  Motor_control id 180117EF
     {
@@ -163,7 +163,7 @@ void AwToCan::TimerCallback()
     can_data.data[2] = brake_can;
     can_data.data[3] = 1;
     
-    Interface_pub_can_->publish(can_data);
+    interface_pub_can_->publish(can_data);
 
     can_msgs::msg::Frame can_data1;
 
@@ -174,7 +174,7 @@ void AwToCan::TimerCallback()
     can_data1.dlc = 2;
     can_data1.data[0] = TC_steer_output_cmd_1;
     can_data1.data[1] = TC_steer_output_cmd_2;
-    Interface_pub_can_->publish(can_data1);
+    interface_pub_can_->publish(can_data1);
 }
 
 int main(int argc, char *argv[])
