@@ -14,6 +14,7 @@ AwToCan::AwToCan() : Node("Aw_to_CAN")
     TC_motor_velocity_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/velocity_status", rclcpp::QoS(1));
     TC_steer_cmd_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_cmd", rclcpp::QoS(1));
     TC_steer_status_pub_ = this->create_publisher<std_msgs::msg::Float64>("/twist_controller/input/steer_status", rclcpp::QoS(1));
+    vehicle_status_pub_ = this->create_publisher<std_msgs::msg::Bool>("/vehicle/mode_status", rclcpp::QoS(1));
 
     // sub  
     sub_aw_command_ = this->create_subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>(
@@ -80,7 +81,27 @@ void AwToCan::Interface_can_data_callback(const can_msgs::msg::Frame::SharedPtr 
         std_msgs::msg::Float64 steering_status_msg;
         steering_status_msg.data = steer_data;
         TC_steer_status_pub_->publish(steering_status_msg);
-    }    
+    }
+
+    if (msg->id == 321) // 141 vehicle_mode (8bit)
+    {
+        uint8_t Vehicle_status = msg->data[4];
+        bool vehicle_mode = 0;
+
+        if (Vehicle_status == MANULAL)
+        {
+            vehicle_mode = false;
+        }
+        else if (Vehicle_status == AUTONOMOUS)
+        {
+            vehicle_mode = true;
+        }
+
+        std_msgs::msg::Bool Vehicle_status_msg;
+        Vehicle_status_msg.data = vehicle_mode;
+        vehicle_status_pub_->publish(Vehicle_status_msg);
+    }
+
 }
 
 void AwToCan::Motor_can_data_callback(const can_msgs::msg::Frame::SharedPtr msg)

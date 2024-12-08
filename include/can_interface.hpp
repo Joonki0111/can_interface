@@ -10,18 +10,25 @@
 #include "can_msgs/msg/frame.hpp"
 #include "std_msgs/msg/float64.hpp"
 #include "std_msgs/msg/int16.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "autoware_auto_vehicle_msgs/msg/velocity_report.hpp"
 #include "autoware_auto_vehicle_msgs/msg/steering_report.hpp"
 #include "autoware_auto_control_msgs/msg/ackermann_control_command.hpp"
 
+// motor revolution
 #define MY_PI 3.141592
 #define WHEEL_DIAMETER 0.51  // m
 #define GEAR_RATIO 4.5
 
+// steer angle
 #define RAD2DEG 57.3
 #define STEERCMD2SIG 242.552
 #define SPEEDCMD2SIG 255.0
 #define STEERCMD_OFFSET 127.0
+
+// vehicle status
+#define MANULAL 1
+#define AUTONOMOUS 3
 
 class AwToCan : public rclcpp::Node 
 {
@@ -37,6 +44,7 @@ class AwToCan : public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_motor_velocity_status_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_steer_cmd_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr TC_steer_status_pub_;
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vehicle_status_pub_;
 
         // Sub
         rclcpp::Subscription<autoware_auto_control_msgs::msg::AckermannControlCommand>::SharedPtr sub_aw_command_;
