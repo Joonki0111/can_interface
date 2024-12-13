@@ -1,5 +1,5 @@
-#ifndef CAN_INTERFACE_HPP
-#define CAN_INTERFACE_HPP
+#ifndef AUTOWARE_INTERFACE_HPP
+#define AUTOWARE_INTERFACE_HPP
 
 #include <chrono>
 #include <cmath>
